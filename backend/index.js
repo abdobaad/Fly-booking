@@ -10,6 +10,10 @@ const { admin } = require("./Middleware/admin");
 
 app.use(express.json());
 
+/////////////////////////
+//////Users Routes//////
+///////////////////////
+
 app.post("/users/resetpassword", auth, async (req, res) => {
   try {
     const { existPassword, newPassword } = req.body;
@@ -197,6 +201,30 @@ app.post("/users/login", async (req, res) => {
       error: true,
       message: "there is an error",
       error,
+    });
+  }
+});
+
+app.get("/users/logout", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user);
+
+    if (!user) {
+      res.status(400).json({
+        error: true,
+        logout: false,
+      });
+    }
+    user.token = "";
+    await user.save();
+    res.status(200).cookie("auth_token", "").json({
+      logout: true,
+      message: "Logout success",
+    });
+  } catch (error) {
+    res.status(400).json({
+      error: true,
+      message: "there is an error",
     });
   }
 });
