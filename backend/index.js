@@ -6,11 +6,34 @@ require("./DB/db");
 const Port = process.env.PORT || 5000;
 const { User } = require("./Models/UserSchema");
 const { auth } = require("./Middleware/auth");
+const { admin } = require("./Middleware/admin");
 
 app.use(express.json());
 
-app.get("/", () => {
-  // console.log(UserSchema);
+app.get("/users/admin", auth, admin, (req, res) => {
+  const { admin, user } = req;
+  if (!user) {
+    res.status(404).json({
+      error: true,
+      Auth: false,
+      message: "you're not authenticated",
+    });
+  }
+  if (!admin) {
+    res.status(404).json({
+      error: true,
+      Auth: true,
+      isAdmin: false,
+      message: "you're not authorized",
+    });
+  }
+
+  res.status(200).json({
+    error: false,
+    Auth: true,
+    isAdmin: true,
+    user,
+  });
 });
 
 app.get("/users/auth", auth, async (req, res) => {
@@ -45,7 +68,6 @@ app.get("/users/auth", auth, async (req, res) => {
     });
   }
 });
-
 app.post("/users/register", async (req, res) => {
   try {
     const { firstName, lastName, userName, email, password } = req.body;
