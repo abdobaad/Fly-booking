@@ -28,8 +28,6 @@ app.post("/users/register", async (req, res) => {
     //=> not existe
     //Hash the password
 
-    //const salt = await process.env.SALT;
-
     const salt = await bcrypt.genSalt(10);
     const hashPassword = await bcrypt.hash(password, salt);
     console.log(hashPassword);
@@ -43,8 +41,6 @@ app.post("/users/register", async (req, res) => {
       password: hashPassword,
     });
 
-    console.log(newUser);
-
     if (!newUser) {
       res.status(400).json({
         error: true,
@@ -56,6 +52,27 @@ app.post("/users/register", async (req, res) => {
       registred: true,
       message: "You're registered successfully",
     });
+  } catch (error) {
+    res.json({
+      error: true,
+      error,
+    });
+  }
+});
+app.post("/users/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    //check if this user exist
+    const isExist = await User.findOne({ email });
+
+    if (!isExist) {
+      res.json({
+        error: true,
+        message: "There in no user with these data",
+      });
+    }
+    const checkPassword = await bcrypt.compare(password, isExist.password);
+    console.log(checkPassword);
   } catch (error) {
     res.json({
       error: true,
