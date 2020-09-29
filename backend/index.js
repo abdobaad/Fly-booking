@@ -5,11 +5,45 @@ const app = express();
 require("./DB/db");
 const Port = process.env.PORT || 5000;
 const { User } = require("./Models/UserSchema");
+const { auth } = require("./Middleware/auth");
 
 app.use(express.json());
 
 app.get("/", () => {
   // console.log(UserSchema);
+});
+
+app.get("/users/auth", auth, async (req, res) => {
+  try {
+    if (!req.user) {
+      res.status(404).json({
+        error: true,
+        message: "Sorry you're not allowed",
+      });
+    }
+
+    const allowedUser = await User.findOne({ _id: req.user });
+
+    if (!allowedUser) {
+      res.status(404).json({
+        error: true,
+        message: "Sorry this user doesn't exist",
+      });
+    }
+
+    const { firstName, lastName, email } = allowedUser;
+
+    res.status(200).json({
+      Auth: true,
+      error: false,
+      user: { firstName, lastName, email },
+    });
+  } catch (error) {
+    res.status(404).json({
+      error: true,
+      message: "Sorry this user doesn't exist",
+    });
+  }
 });
 
 app.post("/users/register", async (req, res) => {
@@ -72,10 +106,39 @@ app.post("/users/login", async (req, res) => {
       });
     }
     const checkPassword = await bcrypt.compare(password, isExist.password);
-    console.log(checkPassword);
+
+    if (!checkPassword) {
+      res.json({
+        error: true,
+        message: "There in no user with these data",
+      });
+    }
+
+    //so the user is exist
+    //now get token
+
+    const secret = await process.env.PRIVATE_KEY;
+
+    const genToken = await jwt.sign({ _id: isExist._id }, secret);
+
+    //  add the token to the user data
+
+    isExist.token = genToken;
+
+    await isExist.save();
+
+    res.cookie("auth_token", genToken).json({
+      status: true,
+      message: "you are Logged in",
+      isAuth: true,
+      genToken,
+    });
+
+    console.log(genToken);
   } catch (error) {
     res.json({
       error: true,
+      message: "there is an error",
       error,
     });
   }
