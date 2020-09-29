@@ -10,6 +10,42 @@ const { admin } = require("./Middleware/admin");
 
 app.use(express.json());
 
+app.post("/users/resetpassword", auth, async (req, res) => {
+  try {
+    const { existPassword, newPassword } = req.body;
+    const user = await User.findById(req.user);
+    console.log(user);
+
+    const checkPassword = await bcrypt.compare(existPassword, user.password);
+
+    if (!checkPassword) {
+      res.status(400).json({
+        error: true,
+        passwordChanged: false,
+        message: "the password is incorrect!",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashPassword = await bcrypt.hash(newPassword, salt);
+
+    user.password = hashPassword;
+
+    await user.save();
+
+    res.status(200).json({
+      error: false,
+      passwordChanged: true,
+      message: "You changed the password!",
+    });
+  } catch (error) {
+    res.status(400).json({
+      error: true,
+      message: "there is a problem,try again!",
+    });
+  }
+});
+
 app.get("/users/admin", auth, admin, (req, res) => {
   const { admin, user } = req;
   if (!user) {
@@ -86,7 +122,6 @@ app.post("/users/register", async (req, res) => {
 
     const salt = await bcrypt.genSalt(10);
     const hashPassword = await bcrypt.hash(password, salt);
-    console.log(hashPassword);
 
     //// create a new user with those data
 
