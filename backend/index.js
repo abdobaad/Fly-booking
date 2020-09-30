@@ -8,12 +8,76 @@ const { User } = require("./Models/UserSchema");
 const { auth } = require("./Middleware/auth");
 const { admin } = require("./Middleware/admin");
 
+const mailgun = require("mailgun-js");
+const DOMAIN = "sandbox191885871f564594b1ad43bf8b05c050.mailgun.org";
+const mg = mailgun({ apiKey: process.env.API_KEY_MAILGUN, domain: DOMAIN });
+
 app.use(express.json());
 
 /////////////////////////
 //////Users Routes//////
 ///////////////////////
 
+app.put("/users/forgotpassword", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const findUser = await User.findOne({ email });
+
+    if (!findUser) {
+      res.status(404).json({
+        error: true,
+        message: "Not found the user",
+      });
+    }
+
+    const token = await jwt.sign(
+      { _id: findUser._id },
+      process.env.PRIVATE_FORGOT_PASSWORD_KEY
+    );
+
+    console.log("token:    " + token);
+
+    const data = {
+      from: "abdobaad9991@gmail.com",
+      to: "neymarbaad6013@gmail.com",
+      subject: "Hello",
+      text: "Testing some Mailgun awesomness!",
+    };
+
+    /* {
+      from: "noreply@hello.com",
+      to: "abdobaad9991@gmail.com",
+      subject: "Forgot the Password",
+      html: `
+     <h2>Please click on given link to reset you password</h2>
+     <p>${process.env.CLIENT_URL}/resetpassword/${token}</p>
+    `,
+    } */ mg.messages().send(
+      data,
+      (err, body) => {
+        if (err) {
+          res.status(400).json({
+            error: true,
+            err,
+          });
+        }
+
+        res.status(200).json({
+          success: true,
+          body,
+        });
+      }
+    );
+
+    console.log(newmg);
+  } catch (error) {
+    res.status(400).json({
+      error: true,
+      message: "there is an error!",
+    });
+  }
+});
 app.post("/users/resetpassword", auth, async (req, res) => {
   try {
     const { existPassword, newPassword } = req.body;
