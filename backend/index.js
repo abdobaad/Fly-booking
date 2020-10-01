@@ -8,9 +8,11 @@ const { User } = require("./Models/UserSchema");
 const { auth } = require("./Middleware/auth");
 const { admin } = require("./Middleware/admin");
 
-const mailgun = require("mailgun-js");
+/* const mailgun = require("mailgun-js");
 const DOMAIN = "sandbox191885871f564594b1ad43bf8b05c050.mailgun.org";
-const mg = mailgun({ apiKey: process.env.API_KEY_MAILGUN, domain: DOMAIN });
+const mg = mailgun({ apiKey: process.env.API_KEY_MAILGUN, domain: DOMAIN }); */
+
+const nodemailer = require("nodemailer");
 
 app.use(express.json());
 
@@ -36,45 +38,50 @@ app.put("/users/forgotpassword", async (req, res) => {
       process.env.PRIVATE_FORGOT_PASSWORD_KEY
     );
 
-    console.log("token:    " + token);
+    findUser.update({
+      resetPasswordToken: token,
+      resetPasswordExpires: Date.now() * 3600000,
+    });
 
-    const data = {
-      from: "abdobaad9991@gmail.com",
-      to: "neymarbaad6013@gmail.com",
-      subject: "Hello",
-      text: "Testing some Mailgun awesomness!",
+    // create reusable transporter object using the default SMTP transport
+    let transporter = await nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.USER_NAME, // generated ethereal user
+        pass: process.env.USER_PASS, // generated ethereal password
+      },
+    });
+
+    const options = {
+      from: "abdobaad9991@gmail.com", // sender address
+      to: "neymarbaad6013@gmail.com", // list of receivers
+      subject: "Hello ✔", // Subject line
+      text: "Hello world?", // plain text body
+      html: "<a>https://localhost:5000/resetpassword/" + token + "</a>", // html body
     };
 
-    /* {
-      from: "noreply@hello.com",
-      to: "abdobaad9991@gmail.com",
-      subject: "Forgot the Password",
-      html: `
-     <h2>Please click on given link to reset you password</h2>
-     <p>${process.env.CLIENT_URL}/resetpassword/${token}</p>
-    `,
-    } */ mg.messages().send(
-      data,
-      (err, body) => {
-        if (err) {
-          res.status(400).json({
-            error: true,
-            err,
-          });
-        }
-
-        res.status(200).json({
-          success: true,
-          body,
-        });
+    // send mail with defined transport object
+    /* let info = await */ transporter.sendMail(options, (err, body) => {
+      if (err) {
+        console.log(err);
       }
-    );
 
-    console.log(newmg);
+      console.log(body);
+
+      /*  console.log("Message sent: %s", info.messageId);
+      // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
+
+      // Preview only available when sending through an Ethereal account
+      console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info)); */
+
+      res.json({
+        sent: true,
+      });
+    });
   } catch (error) {
     res.status(400).json({
       error: true,
-      message: "there is an error!",
+      message: "there is an error!!!",
     });
   }
 });
