@@ -8,17 +8,13 @@ const { User } = require("./Models/UserSchema");
 const { auth } = require("./Middleware/auth");
 const { admin } = require("./Middleware/admin");
 
-/* const mailgun = require("mailgun-js");
-const DOMAIN = "sandbox191885871f564594b1ad43bf8b05c050.mailgun.org";
-const mg = mailgun({ apiKey: process.env.API_KEY_MAILGUN, domain: DOMAIN }); */
-
 const nodemailer = require("nodemailer");
 
 app.use(express.json());
 
-/////////////////////////
-//////Users Routes//////
-///////////////////////
+//////////   ///////////
+////  Users Routes  ///
+////////   ///////////
 
 app.put("/users/forgotpassword", async (req, res) => {
   try {
@@ -61,21 +57,14 @@ app.put("/users/forgotpassword", async (req, res) => {
     };
 
     // send mail with defined transport object
-    /* let info = await */ transporter.sendMail(options, (err, body) => {
+    transporter.sendMail(options, (err, body) => {
       if (err) {
         console.log(err);
       }
 
-      console.log(body);
-
-      /*  console.log("Message sent: %s", info.messageId);
-      // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
-
-      // Preview only available when sending through an Ethereal account
-      console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info)); */
-
       res.json({
         sent: true,
+        body,
       });
     });
   } catch (error) {
@@ -120,7 +109,6 @@ app.post("/users/resetpassword", auth, async (req, res) => {
     });
   }
 });
-
 app.get("/users/admin", auth, admin, (req, res) => {
   const { admin, user } = req;
   if (!user) {
@@ -146,7 +134,6 @@ app.get("/users/admin", auth, admin, (req, res) => {
     user,
   });
 });
-
 app.get("/users/auth", auth, async (req, res) => {
   try {
     if (!req.user) {
@@ -275,7 +262,6 @@ app.post("/users/login", async (req, res) => {
     });
   }
 });
-
 app.get("/users/logout", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user);
